@@ -20,9 +20,15 @@ export default function QuizApp() {
 
   useEffect(() => {
     const shuffled = {};
+    let allQuestions = [];
+
     for (const key in quizSets) {
-      shuffled[key] = shuffleQuestionsAndOptions(quizSets[key]);
+      const shuffledQuiz = shuffleQuestionsAndOptions(quizSets[key]);
+      shuffled[key] = shuffledQuiz;
+      allQuestions = allQuestions.concat(shuffledQuiz);
     }
+
+    shuffled["all"] = shuffleQuestionsAndOptions(allQuestions); // Add all questions combined
     setQuizzes(shuffled);
   }, []);
 
@@ -43,6 +49,14 @@ export default function QuizApp() {
     }));
   };
 
+  const getCorrectCount = (quizKey) => {
+    const quiz = quizzes[quizKey] || [];
+    const quizAnswers = answers[quizKey] || {};
+    return quiz.reduce((count, q, i) => {
+      return quizAnswers[i] === q.answer ? count + 1 : count;
+    }, 0);
+  };
+
   const renderQuiz = (quizKey) => {
     const quiz = quizzes[quizKey] || [];
     const quizAnswers = answers[quizKey] || {};
@@ -55,12 +69,29 @@ export default function QuizApp() {
           const isWrong = isSubmitted && quizAnswers[qIndex] !== q.answer;
           return (
             <div key={qIndex} style={{ marginBottom: "20px" }}>
-              <p><strong>{qIndex + 1}. {q.question}</strong></p>
+              <p>
+                <strong>
+                  {qIndex + 1}. {q.question}
+                </strong>
+              </p>
               {q.options.map((opt, oIndex) => {
                 const isCorrect = isSubmitted && opt === q.answer;
-                const isSelectedWrong = isSubmitted && quizAnswers[qIndex] === opt && quizAnswers[qIndex] !== q.answer;
+                const isSelectedWrong =
+                  isSubmitted &&
+                  quizAnswers[qIndex] === opt &&
+                  quizAnswers[qIndex] !== q.answer;
                 return (
-                  <label key={oIndex} style={{ display: "block", color: isCorrect ? "green" : isSelectedWrong ? "red" : "black" }}>
+                  <label
+                    key={oIndex}
+                    style={{
+                      display: "block",
+                      color: isCorrect
+                        ? "green"
+                        : isSelectedWrong
+                        ? "red"
+                        : "black",
+                    }}
+                  >
                     <input
                       type="radio"
                       name={`${quizKey}-q${qIndex}`}
@@ -68,22 +99,47 @@ export default function QuizApp() {
                       checked={quizAnswers[qIndex] === opt}
                       onChange={() => handleAnswerChange(quizKey, qIndex, opt)}
                       disabled={isSubmitted}
-                    />
-                    {" "}{opt}
+                    />{" "}
+                    {opt}
                   </label>
                 );
               })}
-              {isWrong && <p style={{ color: "blue" }}>✅ Correct answer: {q.answer}</p>}
+              {isWrong && (
+                <p style={{ color: "blue" }}>✅ Correct answer: {q.answer}</p>
+              )}
             </div>
           );
         })}
         <button
           onClick={() => handleSubmit(quizKey)}
           disabled={isSubmitted}
-          style={{ padding: "10px 20px", background: "blue", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+          style={{
+            padding: "10px 20px",
+            background: "blue",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
         >
-          Submit {quizKey.toUpperCase()}
+          Submit{" "}
+          {quizKey.toUpperCase() === "ALL"
+            ? "ALL SECTION"
+            : quizKey.toUpperCase()}
         </button>
+
+        {isSubmitted && (
+          <p
+            style={{
+              marginTop: "10px",
+              fontWeight: "bold",
+              fontSize: "18px",
+              color: "green",
+            }}
+          >
+            Score: {getCorrectCount(quizKey)}/{quiz.length}
+          </p>
+        )}
       </div>
     );
   };
@@ -91,8 +147,15 @@ export default function QuizApp() {
   return (
     <div style={{ maxWidth: "700px", margin: "auto", padding: "20px" }}>
       <h2>Quiz App</h2>
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
-        {Object.keys(quizSets).map((key) => (
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginBottom: "20px",
+        }}
+      >
+        {[...Object.keys(quizSets), "all"].map((key) => (
           <button
             key={key}
             onClick={() => setActiveQuiz(key)}
